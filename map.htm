@@ -1,0 +1,165 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <style>
+      html, body, #map {
+        width: 100%;
+        height: 100%;
+        padding : 0;
+        margin : 0;
+      }
+      #category_panel {
+        background-color : white;
+        padding : 1px;
+        font-size : 13px;
+        margin-top : 5px;
+        border : 1px solid #aaa;
+      }
+    </style>
+    <script src="http://code.jquery.com/jquery-1.8.3.min.js"></script>
+    <script type="text/javascript"
+    src="http://maps.google.com/maps/api/js?sensor=false"></script>
+    <script src="http://google-maps-utility-library-v3.googlecode.com/svn/trunk/markerclusterer/src/markerclusterer.js"></script>
+    <script type="text/javascript">
+      (function() {
+
+        var clusterer;
+
+        window.onload = function() {
+
+          // Creating a new map
+          var map = new google.maps.Map(document.getElementById("map"), {
+            center : new google.maps.LatLng(30.033591, -36.035156),
+            zoom : 3,
+            mapTypeId : google.maps.MapTypeId.ROADMAP,
+            noClear : true
+          });
+
+          var selectDiv = $("#category_panel")[0];
+          map.controls[google.maps.ControlPosition.TOP_LEFT].push(selectDiv);
+
+          // Creating the JSON data
+          var json = [{
+            "title" : "USA",
+            "lat" : 37.616552,
+            "lng" : -92.988281,
+            "description" : "<strong>USA</strong> ...",
+            "category" : "one"
+          }, {
+            "title" : "France",
+            "lat" : 48.372793,
+            "lng" : 1.230469,
+            "description" : "<strong>France</strong> ...",
+            "category" : "two"
+          }, {
+            "title" : "UK",
+            "lat" : 51.517403,
+            "lng" : -0.098877,
+            "description" : "<strong>UK</strong> ...",
+            "category" : "three"
+          }];
+
+
+          /*******
+           * for test (start)
+           ********/
+
+          var sw = new google.maps.LatLng(37.616552, -92.988281);
+          var ne = new google.maps.LatLng(51.517403, -0.098877);
+          var bounds = new google.maps.LatLngBounds(sw, ne);
+          map.fitBounds(bounds);
+          var lat,lng,category;
+          var categories = ["one", "two", "three"];
+          for(var i = 0; i < 300; i++) {
+            lat = Math.random() * (ne.lat() - sw.lat()) + sw.lat();
+            lng = Math.random() * (ne.lng() - sw.lng()) + sw.lng();
+            category = categories[Math.floor(Math.random() * 3)];
+            json.push({
+              "title" : "random #" + i,
+              "lat" : lat,
+              "lng" : lng,
+              "description" : "<strong>" + category + "</strong><br>random #" + i,
+              "category" : category
+            });
+          }
+          /*******
+           * for test (end)
+           ********/
+
+
+          // Custom marker - Need one for each category
+          var image = new google.maps.MarkerImage(
+            'http://i.imgur.com/3YJ8z.png',
+            new google.maps.Size(19, 25), // size of the image
+            new google.maps.Point(0, 0) // origin, in this case top-left corner
+          );
+
+          // Creating a global infoWindow object that will be reused by all markers
+          var infoWindow = new google.maps.InfoWindow();
+
+          // Marker Clusterer setup
+          var mcOptions = {
+            gridSize : 50,
+            maxZoom : 15
+          };
+          clusterer = new MarkerClusterer(map, [], mcOptions);
+
+          var markers = {};
+          var categoryIcons = {
+            "one" : "https://chart.googleapis.com/chart?chst=d_map_pin_letter&chld=1%7CFF0000%7C000000",
+            "two" : "https://chart.googleapis.com/chart?chst=d_map_pin_letter&chld=2%7C00FFFF%7C000000",
+            "three" : "https://chart.googleapis.com/chart?chst=d_map_pin_letter&chld=3%7CFF00FF%7C000000"
+          }
+
+          // Looping through the JSON data
+          for (var i = 0, length = json.length; i < length; i++) {
+            var data = json[i],
+                latLng = new google.maps.LatLng(data.lat, data.lng),
+                category = data.category;
+
+            if (category in markers == false) {
+              markers[category] = [];
+            }
+
+            // Creating a marker and putting it on the map
+            var marker = new google.maps.Marker({
+              position : latLng,
+              title : data.title,
+              icon : categoryIcons[data.category]
+            });
+            markers[category].push(marker);
+
+            // Creating a closure to retain the correct data, notice how I pass the current data in the loop into the closure (marker, data)
+            (function(marker, data) {
+
+              // Attaching a click event to the current marker
+              google.maps.event.addListener(marker, "click", function(e) {
+                infoWindow.setContent(data.description);
+                infoWindow.open(map, marker);
+              });
+            })(marker, data);
+
+          }// END for loop
+
+          $("#category").change(function(){
+            var selected = $(this).val();
+            clusterer.clearMarkers();
+            clusterer.addMarkers(markers[selected]);
+          });
+          $("#category").change();
+        }// END window.onload
+      })();
+    </script>
+  </head>
+  <body>
+    <div id="map">
+      <div id="category_panel">
+        category:<select id="category">
+          <option value="one">one</option>
+          <option value="two">two</option>
+          <option value="three">three</option>
+        </select>
+      </div>
+    </div>
+  </body>
+</html>
